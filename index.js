@@ -1,3 +1,12 @@
+const { Pool } = require("pg");
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+});
+
 const HOTDOG_GIFS = [
   "https://media.giphy.com/media/ebPX2n2kvJHOM/giphy.gif",
   "https://media.giphy.com/media/xT8qB4HFqftRrLUpkQ/giphy.gif",
@@ -89,6 +98,23 @@ function loadSubmissions() {
   if (!fs.existsSync(DATA_FILE)) return [];
   return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
 }
+
+async function initDB() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS submissions (
+      id SERIAL PRIMARY KEY,
+      user_name TEXT,
+      hotdogs INT,
+      price FLOAT,
+      distance FLOAT,
+      type TEXT,
+      rating FLOAT,
+      notes TEXT,
+      date TIMESTAMP
+    );
+  `);
+}
+
 
 function saveSubmissions(submissions) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
@@ -266,8 +292,16 @@ function buildScoreboard() {
   return `🌭 **Hotdog Scoreboard** 🌭\n\n${leaderboard}`;
 }
 
-client.once("clientReady", () => {
-  console.log(`✅ Logged in as ${client.user.tag}`);
+client.once("ready", async () => {
+  try {
+    console.log(`✅ Logged in as ${client.user.tag}`);
+
+    await initDB();
+    console.log("📦 Database initialized");
+
+  } catch (err) {
+    console.error("❌ DB init failed:", err);
+  }
 });
 
 client.on("interactionCreate", async (interaction) => {

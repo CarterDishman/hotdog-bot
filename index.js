@@ -243,6 +243,10 @@ function validateSubmission({ hotdogs, price, distance, type, rating }) {
     errors.push("Hotdogs must be greater than 0.");
   }
 
+if (hotdogs > 1000) {
+  errors.push("Hotdogs must be 1,000 or less. Please stop breaking GlizzyBot.");
+}
+
   if (!Number.isInteger(hotdogs)) {
     errors.push("Hotdogs must be a whole number.");
   }

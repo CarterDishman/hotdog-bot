@@ -1,0 +1,364 @@
+const HOTDOG_GIFS = [
+  "https://media.giphy.com/media/ebPX2n2kvJHOM/giphy.gif",
+  "https://media.giphy.com/media/xT8qB4HFqftRrLUpkQ/giphy.gif",
+  "https://media.giphy.com/media/3T5wJtXxY7jD1U5QRq/giphy.gif",
+  "https://media.giphy.com/media/W3NsNTTR1Zh23hWxR4/giphy.gif",
+  "https://media.giphy.com/media/l49JZsJ57fBfyL5Xq/giphy.gif",
+  "https://media.giphy.com/media/odcCgOkBew092GRc2D/giphy.gif",
+  "https://media.giphy.com/media/wPKZ5Ud28wBJ6/giphy.gif",
+  "https://media.giphy.com/media/nclBrU1D6CEEw/giphy.gif",
+  "https://media.giphy.com/media/AUlNi9YCtzSnu/giphy.gif",
+  "https://media.giphy.com/media/xT8qB4HFqftRrLUpkQ/giphy.gif",
+  "https://media.giphy.com/media/cKVpzbAjNvZRciP7Qt/giphy.gif",
+  "https://media.giphy.com/media/vZofZbbHzygxabGOck/giphy.gif",
+  "https://media.giphy.com/media/4UyTGOohjQX64UuSvc/giphy.gif",
+  "https://media.giphy.com/media/5He16eTgpabyeEQ9t6/giphy.gif",
+  "https://media.giphy.com/media/14ebDjIY0awlt6/giphy.gif",
+  "https://media.giphy.com/media/5E7vDOIamcWlzg97TG/giphy.gif",
+  "https://media.giphy.com/media/aoF0MQK5t2kia3aqk8/giphy.gif",
+  "https://media.giphy.com/media/Y4GerX1gMExqPj69p1/giphy.gif",
+  "https://media.giphy.com/media/xs3qjhLVU2gKMfFAWV/giphy.gif",
+  "https://media.giphy.com/media/eOkhXuornySWs/giphy.gif",
+  "https://media.giphy.com/media/d8p7Yv6PojSLed06bq/giphy.gif"
+];
+
+
+require("dotenv").config();
+
+const fs = require("fs");
+const { Client, GatewayIntentBits } = require("discord.js");
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+  ],
+});
+
+const DATA_FILE = "./submissions.json";
+
+function buildRecords() {
+  const submissions = loadSubmissions();
+
+  if (submissions.length === 0) {
+    return "🌭 No records yet!";
+  }
+
+  const mostExpensive = submissions.reduce((max, sub) =>
+    sub.price > max.price ? sub : max
+  );
+
+  const mostDogs = submissions.reduce((max, sub) =>
+    sub.hotdogs > max.hotdogs ? sub : max
+  );
+
+  const furthest = submissions.reduce((max, sub) =>
+    sub.distance > max.distance ? sub : max
+  );
+
+  const ratedSubmissions = submissions.filter(sub => sub.rating !== null);
+
+  const highestRated =
+    ratedSubmissions.length > 0
+      ? ratedSubmissions.reduce((max, sub) =>
+          sub.rating > max.rating ? sub : max
+        )
+      : null;
+
+  return (
+    `🏆 **Current Glizzy Records** 🏆\n\n` +
+
+    `💰 **Most Expensive Dog Run**\n` +
+    `${mostExpensive.user} — $${mostExpensive.price.toFixed(2)} for ${mostExpensive.type}\n\n` +
+
+    `🌭 **Most Dogs in One Submission**\n` +
+    `${mostDogs.user} — ${mostDogs.hotdogs} dogs (${mostDogs.type})\n\n` +
+
+    `🚶 **Furthest From Home**\n` +
+    `${furthest.user} — ${furthest.distance} miles for ${furthest.type}\n\n` +
+
+    (highestRated
+      ? `⭐ **Highest Rated Dog**\n` +
+        `${highestRated.user} — ${highestRated.rating} stars (${highestRated.type})`
+      : `⭐ **Highest Rated Dog**\nNo rated submissions yet.`)
+  );
+}
+
+function loadSubmissions() {
+  if (!fs.existsSync(DATA_FILE)) return [];
+  return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+}
+
+function saveSubmissions(submissions) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
+}
+
+function validateSubmission({ hotdogs, price, distance, type, rating }) {
+  const errors = [];
+
+  if (!Number.isFinite(hotdogs) || hotdogs <= 0) {
+    errors.push("Hotdogs must be greater than 0.");
+  }
+
+  if (!Number.isInteger(hotdogs)) {
+    errors.push("Hotdogs must be a whole number.");
+  }
+
+  if (rating !== null && !Number.isFinite(rating)) {
+    errors.push("Stars must be a number.");
+  }
+
+  if (!Number.isFinite(price) || price < 0) {
+    errors.push("Price must be $0 or more.");
+  }
+
+  if (!Number.isFinite(distance) || distance < 0) {
+    errors.push("Distance must be 0 miles or more.");
+  }
+
+  if (!type || type.trim().length < 2) {
+    errors.push("Type of dog must be at least 2 characters.");
+  }
+
+  return errors;
+}
+
+function getRandomGif() {
+  return HOTDOG_GIFS[Math.floor(Math.random() * HOTDOG_GIFS.length)];
+}
+
+function checkBrokenRecords(newEntry, previousSubmissions) {
+  const records = [];
+
+  if (previousSubmissions.length === 0) {
+    records.push("🏆 First official submission!");
+    return records;
+  }
+
+
+ const mostExpensive = Math.max(...previousSubmissions.map(s => s.price));
+const mostDogs = Math.max(...previousSubmissions.map(s => s.hotdogs));
+const furthest = Math.max(...previousSubmissions.map(s => s.distance));
+
+const highestRated = Math.max(
+  ...previousSubmissions
+    .filter(s => s.rating !== null)
+    .map(s => s.rating),
+  -Infinity
+);
+  if (newEntry.price > mostExpensive) {
+    records.push(`💰 New most expensive dog purchase $${newEntry.price.toFixed(2)}!`);
+  }
+
+  if (newEntry.hotdogs > mostDogs) {
+    records.push(`🌭 New single-submission hotdog record: ${newEntry.hotdogs} dogs!`);
+  }
+
+  if (newEntry.distance > furthest) {
+    records.push(`🚶 New furthest glizzy pilgrimage: ${newEntry.distance} miles!`);
+  }
+
+if (newEntry.rating !== null && newEntry.rating > highestRated) {
+  records.push(`⭐ New highest rated dog: ${newEntry.rating} stars!`);
+}
+
+  return records;
+}
+
+
+function buildUserStats(username) {
+  const submissions = loadSubmissions();
+  const userSubs = submissions.filter(sub => sub.user === username);
+
+  if (userSubs.length === 0) {
+    return "🌭 You have no submissions yet!";
+  }
+
+  const totalDogs = userSubs.reduce((sum, sub) => sum + sub.hotdogs, 0);
+  const totalSpent = userSubs.reduce((sum, sub) => sum + sub.price, 0);
+  const totalDistance = userSubs.reduce((sum, sub) => sum + sub.distance, 0);
+
+  return (
+    `🌭 **Your Hotdog Stats** 🌭\n\n` +
+    `**Total dogs:** ${totalDogs}\n` +
+    `**Submissions:** ${userSubs.length}\n` +
+    `**Total spent:** $${totalSpent.toFixed(2)}\n` +
+    `**Avg price per dog:** $${(totalSpent / totalDogs).toFixed(2)}\n` +
+    `**Avg distance:** ${(totalDistance / userSubs.length).toFixed(2)} miles`
+  );
+}
+
+function buildGlobalStats() {
+  const submissions = loadSubmissions();
+
+  if (submissions.length === 0) {
+    return "🌭 No submissions yet!";
+  }
+
+  const totalDogs = submissions.reduce((sum, s) => sum + s.hotdogs, 0);
+  const totalSpent = submissions.reduce((sum, s) => sum + s.price, 0);
+  const totalDistance = submissions.reduce((sum, s) => sum + s.distance, 0);
+
+  const avgPrice = totalSpent / submissions.length;
+  const avgDistance = totalDistance / submissions.length;
+
+  // ⭐ ratings (only count ones that exist)
+  const rated = submissions.filter(s => s.rating !== null);
+  const avgRating =
+    rated.length > 0
+      ? rated.reduce((sum, s) => sum + s.rating, 0) / rated.length
+      : null;
+
+  // 🌭 most popular type
+  const typeCounts = {};
+  for (const s of submissions) {
+    typeCounts[s.type] = (typeCounts[s.type] || 0) + 1;
+  }
+
+  const mostPopularType = Object.entries(typeCounts)
+    .sort((a, b) => b[1] - a[1])[0][0];
+
+  return (
+    `🌭 **Competition Stats** 🌭\n\n` +
+    `**Total submissions:** ${submissions.length}\n` +
+    `**Total hotdogs eaten:** ${totalDogs}\n` +
+    `**Total spent:** $${totalSpent.toFixed(2)}\n` +
+    `**Average price per run:** $${avgPrice.toFixed(2)}\n` +
+    `**Average distance:** ${avgDistance.toFixed(2)} miles\n` +
+    `**Most popular type:** ${mostPopularType}\n` +
+    (avgRating !== null
+      ? `⭐ **Average stars:** ${avgRating.toFixed(2)}\n`
+      : "")
+  );
+}
+
+function buildScoreboard() {
+  const submissions = loadSubmissions();
+
+  if (submissions.length === 0) {
+    return "🌭 No submissions yet!";
+  }
+
+  const totals = {};
+
+  for (const sub of submissions) {
+    if (!totals[sub.user]) {
+      totals[sub.user] = { hotdogs: 0, submissions: 0 };
+    }
+
+    totals[sub.user].hotdogs += sub.hotdogs;
+    totals[sub.user].submissions += 1;
+  }
+
+  const leaderboard = Object.entries(totals)
+    .sort((a, b) => b[1].hotdogs - a[1].hotdogs)
+    .map(([user, data], index) => {
+      let medal = "";
+      if (index === 0) medal = "🥇";
+      else if (index === 1) medal = "🥈";
+      else if (index === 2) medal = "🥉";
+
+      return `${medal} ${index + 1}. ${user} — ${data.hotdogs} dogs (${data.submissions} submissions)`;
+    })
+    .join("\n");
+
+  return `🌭 **Hotdog Scoreboard** 🌭\n\n${leaderboard}`;
+}
+
+client.once("clientReady", () => {
+  console.log(`✅ Logged in as ${client.user.tag}`);
+});
+
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+
+if (interaction.commandName === "records") {
+  return interaction.reply(buildRecords());
+}
+
+  try {
+    if (interaction.commandName === "submit") {
+      const hotdogs = interaction.options.getNumber("hotdogs");
+      const price = interaction.options.getNumber("price");
+      const distance = interaction.options.getNumber("distance");
+      const type = interaction.options.getString("type").trim();
+      const rating = interaction.options.getNumber("stars");
+      const notes = interaction.options.getString("notes");
+
+      const errors = validateSubmission({ hotdogs, price, distance, type, rating });
+
+      if (errors.length > 0) {
+        return interaction.reply({
+          content: "❌ Submission rejected:\n" + errors.map(e => `- ${e}`).join("\n"),
+          ephemeral: true,
+        });
+      }
+
+      const entry = {
+        id: Date.now(),
+        user: interaction.user.username,
+        hotdogs,
+        price,
+        distance,
+        type,
+        rating: rating ?? null,
+        notes: notes ?? null,
+        date: new Date().toISOString(),
+      };
+
+      const submissions = loadSubmissions();
+      const brokenRecords = checkBrokenRecords(entry, submissions);
+
+      submissions.push(entry);
+      saveSubmissions(submissions);
+const gif = getRandomGif();
+
+return interaction.reply({
+  content:
+    `🌭 Submission recorded!\n\n` +
+    `**Hotdogs:** ${entry.hotdogs}\n` +
+    `**Price:** $${entry.price.toFixed(2)}\n` +
+    `**Distance:** ${entry.distance} miles\n` +
+    `**Type:** ${entry.type}\n` +
+    (entry.rating !== null ? `⭐ **Stars:** ${entry.rating}\n` : "") +
+    (entry.notes ? `📝 **Notes:** ${entry.notes}\n` : "") +
+    (brokenRecords.length > 0
+      ? `\n🏆 **New Record${brokenRecords.length > 1 ? "s" : ""}!**\n` +
+        brokenRecords.map(r => `- ${r}`).join("\n")
+      : ""),
+
+  embeds: [
+    {
+      image: {
+        url: gif,
+      },
+    },
+  ],
+});
+    }
+
+    if (interaction.commandName === "stats") {
+      return interaction.reply(buildGlobalStats());
+    }
+
+    if (interaction.commandName === "scoreboard") {
+      return interaction.reply(buildScoreboard());
+    }
+
+    if (interaction.commandName === "mystats") {
+      return interaction.reply(buildUserStats(interaction.user.username));
+    }
+  } catch (error) {
+    console.error(error);
+
+    if (!interaction.replied) {
+      return interaction.reply({
+        content: "❌ Something broke",
+        ephemeral: true,
+      });
+    }
+  }
+});
+
+client.login(process.env.DISCORD_TOKEN);

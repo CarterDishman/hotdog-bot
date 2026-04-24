@@ -1,4 +1,3 @@
-require("dotenv").config();
 
 const { Client, GatewayIntentBits } = require("discord.js");
 const { Pool } = require("pg");
@@ -49,7 +48,86 @@ const client = new Client({
 });
 
 
+function buildHelp() {
+  return (
+    `🌭 **GlizzyBot Commands** 🌭\n\n` +
+    `**/submit** — Submit a hotdog entry\n` +
+    `**/scoreboard** — Show total hotdogs leaderboard\n` +
+    `**/records** — Show current contest records\n` +
+    `**/stats** — Show whole competition stats\n` +
+    `**/mystats** — Show your personal stats\n` +
+    `**/last** — Show your most recent submission\n` +
+    `**/delete** — Delete your most recent submission\n`
+  );
+}
 
+async function getLastSubmission(username) {
+  const result = await pool.query(
+    `
+    SELECT
+      id,
+      user_name AS user,
+      hotdogs,
+      price,
+      distance,
+      type,
+      rating,
+      notes,
+      date
+    FROM submissions
+    WHERE user_name = $1
+    ORDER BY date DESC
+    LIMIT 1
+    `,
+    [username]
+  );
+
+  return result.rows[0] || null;
+}
+
+function formatSubmission(submission) {
+  if (!submission) {
+    return "🌭 No submissions found.";
+  }
+
+  return (
+    `🌭 **Most Recent Submission** 🌭\n\n` +
+    `**Hotdogs:** ${submission.hotdogs}\n` +
+    `**Price:** $${Number(submission.price).toFixed(2)}\n` +
+    `**Distance:** ${submission.distance} miles\n` +
+    `**Type:** ${submission.type}\n` +
+    (submission.rating !== null ? `⭐ **Stars:** ${submission.rating}\n` : "") +
+    (submission.notes ? `📝 **Notes:** ${submission.notes}\n` : "")
+  );
+}
+
+async function deleteLastSubmission(username) {
+  const result = await pool.query(
+    `
+    DELETE FROM submissions
+    WHERE id = (
+      SELECT id
+      FROM submissions
+      WHERE user_name = $1
+      ORDER BY date DESC
+      LIMIT 1
+    )
+    RETURNING
+      id,
+      user_name AS user,
+      hotdogs,
+      price,
+      distance,
+      type,
+      rating,
+      notes,
+      date
+    `,
+    [username]
+  );
+
+  return result.rows[0] || null;
+}
 
 async function buildRecords() {
   const submissions = await getSubmissions();
@@ -342,6 +420,30 @@ client.once("ready", async () => {
 
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
+
+if (interaction.commandName === "help") {
+  return interaction.reply(buildHelp());
+}
+
+if (interaction.commandName === "last") {
+  const lastSubmission = await getLastSubmission(interaction.user.username);
+  return interaction.reply(formatSubmission(lastSubmission));
+}
+
+if (interaction.commandName === "delete") {
+  const deletedSubmission = await deleteLastSubmission(interaction.user.username);
+
+  if (!deletedSubmission) {
+    return interaction.reply("🌭 You have no submissions to delete.");
+  }
+
+  return interaction.reply(
+    `🗑️ Deleted your most recent submission:\n\n` +
+    formatSubmission(deletedSubmission)
+  );
+}
+
+
 
 if (interaction.commandName === "records") {
   return interaction.reply(await buildRecords());

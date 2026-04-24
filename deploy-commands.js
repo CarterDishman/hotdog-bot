@@ -34,8 +34,18 @@ const commands = [
   ),
 
 new SlashCommandBuilder()
-  .setName("stats")
-  .setDescription("Show overall competition stats"),
+  .setName("help")
+  .setDescription("Show all GlizzyBot commands"),
+
+new SlashCommandBuilder()
+  .setName("last")
+  .setDescription("Show your most recent submission"),
+
+new SlashCommandBuilder()
+  .setName("delete")
+  .setDescription("Delete your most recent submission"),
+
+
 
   new SlashCommandBuilder()
     .setName("scoreboard")

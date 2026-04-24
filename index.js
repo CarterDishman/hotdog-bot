@@ -31,7 +31,8 @@ const HOTDOG_GIFS = [
   "https://media.giphy.com/media/Y4GerX1gMExqPj69p1/giphy.gif",
   "https://media.giphy.com/media/xs3qjhLVU2gKMfFAWV/giphy.gif",
   "https://media.giphy.com/media/eOkhXuornySWs/giphy.gif",
-  "https://media.giphy.com/media/d8p7Yv6PojSLed06bq/giphy.gif"
+  "https://media.giphy.com/media/d8p7Yv6PojSLed06bq/giphy.gif",
+  "https://media.giphy.com/media/zzHjALXvIDl3a/giphy.gif"
 ];
 
 

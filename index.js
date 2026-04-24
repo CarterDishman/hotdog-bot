@@ -1,4 +1,8 @@
+require("dotenv").config();
+
+const { Client, GatewayIntentBits } = require("discord.js");
 const { Pool } = require("pg");
+
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -34,8 +38,7 @@ const HOTDOG_GIFS = [
 
 require("dotenv").config();
 
-const fs = require("fs");
-const { Client, GatewayIntentBits } = require("discord.js");
+
 
 const client = new Client({
   intents: [
@@ -45,10 +48,11 @@ const client = new Client({
   ],
 });
 
-const DATA_FILE = "./submissions.json";
 
-function buildRecords() {
-  const submissions = loadSubmissions();
+
+
+async function buildRecords() {
+  const submissions = await getSubmissions();
 
   if (submissions.length === 0) {
     return "🌭 No records yet!";
@@ -94,9 +98,44 @@ function buildRecords() {
   );
 }
 
-function loadSubmissions() {
-  if (!fs.existsSync(DATA_FILE)) return [];
-  return JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
+async function getSubmissions() {
+  const result = await pool.query(`
+    SELECT
+      id,
+      user_name AS user,
+      hotdogs,
+      price,
+      distance,
+      type,
+      rating,
+      notes,
+      date
+    FROM submissions
+    ORDER BY date ASC
+  `);
+
+  return result.rows;
+}
+
+async function addSubmission(entry) {
+  await pool.query(
+    `
+    INSERT INTO submissions
+      (user_name, hotdogs, price, distance, type, rating, notes, date)
+    VALUES
+      ($1, $2, $3, $4, $5, $6, $7, $8)
+    `,
+    [
+      entry.user,
+      entry.hotdogs,
+      entry.price,
+      entry.distance,
+      entry.type,
+      entry.rating,
+      entry.notes,
+      entry.date,
+    ]
+  );
 }
 
 async function initDB() {
@@ -116,9 +155,7 @@ async function initDB() {
 }
 
 
-function saveSubmissions(submissions) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(submissions, null, 2));
-}
+
 
 function validateSubmission({ hotdogs, price, distance, type, rating }) {
   const errors = [];
@@ -192,9 +229,9 @@ if (newEntry.rating !== null && newEntry.rating > highestRated) {
   return records;
 }
 
+async function buildUserStats(username) {
+  const submissions = await getSubmissions();
 
-function buildUserStats(username) {
-  const submissions = loadSubmissions();
   const userSubs = submissions.filter(sub => sub.user === username);
 
   if (userSubs.length === 0) {
@@ -214,9 +251,8 @@ function buildUserStats(username) {
     `**Avg distance:** ${(totalDistance / userSubs.length).toFixed(2)} miles`
   );
 }
-
-function buildGlobalStats() {
-  const submissions = loadSubmissions();
+async function buildGlobalStats() {
+  const submissions = await getSubmissions();
 
   if (submissions.length === 0) {
     return "🌭 No submissions yet!";
@@ -259,8 +295,8 @@ function buildGlobalStats() {
   );
 }
 
-function buildScoreboard() {
-  const submissions = loadSubmissions();
+async function buildScoreboard() {
+  const submissions = await getSubmissions();
 
   if (submissions.length === 0) {
     return "🌭 No submissions yet!";
@@ -308,7 +344,7 @@ client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
 if (interaction.commandName === "records") {
-  return interaction.reply(buildRecords());
+  return interaction.reply(await buildRecords());
 }
 
   try {
@@ -341,12 +377,11 @@ if (interaction.commandName === "records") {
         date: new Date().toISOString(),
       };
 
-      const submissions = loadSubmissions();
-      const brokenRecords = checkBrokenRecords(entry, submissions);
+      const submissions = await getSubmissions();
+       const brokenRecords = checkBrokenRecords(entry, submissions);
 
-      submissions.push(entry);
-      saveSubmissions(submissions);
-const gif = getRandomGif();
+        await addSubmission(entry);
+        const gif = getRandomGif();
 
 return interaction.reply({
   content:
@@ -373,15 +408,15 @@ return interaction.reply({
     }
 
     if (interaction.commandName === "stats") {
-      return interaction.reply(buildGlobalStats());
+      return interaction.reply(await buildGlobalStats());
     }
 
     if (interaction.commandName === "scoreboard") {
-      return interaction.reply(buildScoreboard());
+      return interaction.reply(await buildScoreboard());
     }
 
     if (interaction.commandName === "mystats") {
-      return interaction.reply(buildUserStats(interaction.user.username));
+      return interaction.reply(await buildUserStats(interaction.user.username));
     }
   } catch (error) {
     console.error(error);

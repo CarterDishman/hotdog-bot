@@ -1,14 +1,11 @@
 {
   "name": "hotdog-bot",
   "version": "1.0.0",
-  "description": "",
+  "description": "Discord hotdog contest bot",
   "main": "index.js",
   "scripts": {
-  "start": "node index.js"
-}
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+    "start": "node index.js"
+  },
   "type": "commonjs",
   "dependencies": {
     "discord.js": "^14.26.3",

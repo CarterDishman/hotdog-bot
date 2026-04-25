@@ -86,7 +86,7 @@ async function getLastSubmission(username) {
   return result.rows[0] || null;
 }
 
-function findPassedUsers(before, after, submitterId) {
+ffunction findPassedUsers(before, after, submitterId) {
   const beforeRanks = {};
   const afterRanks = {};
 
@@ -98,23 +98,30 @@ function findPassedUsers(before, after, submitterId) {
     afterRanks[user.discordId] = index + 1;
   });
 
+  const submitterOldRank = beforeRanks[submitterId];
   const submitterNewRank = afterRanks[submitterId];
+
+  if (!submitterNewRank) return [];
+
   const passed = [];
 
   for (const user of before) {
     if (user.discordId === submitterId) continue;
 
-    const oldRank = beforeRanks[user.discordId];
-    const newRank = afterRanks[user.discordId];
+    const userOldRank = beforeRanks[user.discordId];
+    const userNewRank = afterRanks[user.discordId];
 
-    if (oldRank < submitterNewRank && newRank > submitterNewRank) {
+    if (
+      submitterOldRank &&
+      userOldRank < submitterOldRank &&
+      userNewRank > submitterNewRank
+    ) {
       passed.push(user);
     }
   }
 
   return passed;
 }
-
 function buildRankings(submissions) {
   const totals = {};
 

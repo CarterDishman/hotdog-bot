@@ -86,6 +86,55 @@ async function getLastSubmission(username) {
   return result.rows[0] || null;
 }
 
+function findPassedUsers(before, after, submitterId) {
+  const beforeRanks = {};
+  const afterRanks = {};
+
+  before.forEach((user, index) => {
+    beforeRanks[user.discordId] = index + 1;
+  });
+
+  after.forEach((user, index) => {
+    afterRanks[user.discordId] = index + 1;
+  });
+
+  const submitterNewRank = afterRanks[submitterId];
+  const passed = [];
+
+  for (const user of before) {
+    if (user.discordId === submitterId) continue;
+
+    const oldRank = beforeRanks[user.discordId];
+    const newRank = afterRanks[user.discordId];
+
+    if (oldRank < submitterNewRank && newRank > submitterNewRank) {
+      passed.push(user);
+    }
+  }
+
+  return passed;
+}
+
+function buildRankings(submissions) {
+  const totals = {};
+
+  for (const sub of submissions) {
+    if (!sub.discord_id) continue; // skip old data
+
+    if (!totals[sub.discord_id]) {
+      totals[sub.discord_id] = {
+        user: sub.user,
+        discordId: sub.discord_id,
+        hotdogs: 0,
+      };
+    }
+
+    totals[sub.discord_id].hotdogs += sub.hotdogs;
+  }
+
+  return Object.values(totals).sort((a, b) => b.hotdogs - a.hotdogs);
+}
+
 function formatSubmission(submission) {
   if (!submission) {
     return "🌭 No submissions found.";
@@ -183,6 +232,7 @@ async function getSubmissions() {
       id,
       user_name AS user,
       hotdogs,
+discord_id,
       price,
       distance,
       type,
@@ -202,10 +252,11 @@ async function addSubmission(entry) {
     INSERT INTO submissions
       (user_name, hotdogs, price, distance, type, rating, notes, date)
     VALUES
-      ($1, $2, $3, $4, $5, $6, $7, $8)
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     `,
     [
       entry.user,
+      entry.discordId,
       entry.hotdogs,
       entry.price,
       entry.distance,
@@ -473,21 +524,32 @@ if (interaction.commandName === "records") {
       }
 
       const entry = {
-        id: Date.now(),
-        user: interaction.user.username,
-        hotdogs,
-        price,
-        distance,
-        type,
-        rating: rating ?? null,
-        notes: notes ?? null,
-        date: new Date().toISOString(),
-      };
+  user: interaction.user.username,
+  discordId: interaction.user.id,
+  hotdogs,
+  price,
+  distance,
+  type,
+  rating: rating ?? null,
+  notes: notes ?? null,
+  date: new Date().toISOString(), // ← THIS is your timestamp
+};
 
-      const submissions = await getSubmissions();
-       const brokenRecords = checkBrokenRecords(entry, submissions);
+     const beforeSubmissions = await getSubmissions();
+const beforeRankings = buildRankings(beforeSubmissions);
 
-        await addSubmission(entry);
+const brokenRecords = checkBrokenRecords(entry, beforeSubmissions);
+
+await addSubmission(entry);
+
+const afterSubmissions = await getSubmissions();
+const afterRankings = buildRankings(afterSubmissions);
+
+const passedUsers = findPassedUsers(
+  beforeRankings,
+  afterRankings,
+  interaction.user.id
+);
         const gif = getRandomGif();
 
 return interaction.reply({
@@ -502,6 +564,12 @@ return interaction.reply({
     (brokenRecords.length > 0
       ? `\n🏆 **New Record${brokenRecords.length > 1 ? "s" : ""}!**\n` +
         brokenRecords.map(r => `- ${r}`).join("\n")
+      : "") +
+    (passedUsers.length > 0
+      ? `\n\n🔥 **Scoreboard Alert!**\n` +
+        passedUsers
+          .map(user => `<@${user.discordId}> just got passed by <@${interaction.user.id}>.`)
+          .join("\n")
       : ""),
 
   embeds: [
@@ -511,6 +579,7 @@ return interaction.reply({
       },
     },
   ],
+});
 });
     }
 

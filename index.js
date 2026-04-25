@@ -86,7 +86,7 @@ async function getLastSubmission(username) {
   return result.rows[0] || null;
 }
 
-ffunction findPassedUsers(before, after, submitterId) {
+function findPassedUsers(before, after, submitterId) {
   const beforeRanks = {};
   const afterRanks = {};
 

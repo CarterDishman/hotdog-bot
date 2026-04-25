@@ -250,9 +250,9 @@ async function addSubmission(entry) {
   await pool.query(
     `
     INSERT INTO submissions
-      (user_name, hotdogs, price, distance, type, rating, notes, date)
-    VALUES
-      ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+  (user_name, discord_id, hotdogs, price, distance, type, rating, notes, date)
+VALUES
+  ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     `,
     [
       entry.user,
@@ -271,16 +271,17 @@ async function addSubmission(entry) {
 async function initDB() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS submissions (
-      id SERIAL PRIMARY KEY,
-      user_name TEXT,
-      hotdogs INT,
-      price FLOAT,
-      distance FLOAT,
-      type TEXT,
-      rating FLOAT,
-      notes TEXT,
-      date TIMESTAMP
-    );
+  id SERIAL PRIMARY KEY,
+  user_name TEXT,
+  discord_id TEXT,
+  hotdogs INT,
+  price FLOAT,
+  distance FLOAT,
+  type TEXT,
+  rating FLOAT,
+  notes TEXT,
+  date TIMESTAMP
+);
   `);
 }
 
@@ -580,7 +581,7 @@ return interaction.reply({
     },
   ],
 });
-});
+
     }
 
     if (interaction.commandName === "stats") {

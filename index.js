@@ -32,7 +32,20 @@ const HOTDOG_GIFS = [
   "https://media.giphy.com/media/xs3qjhLVU2gKMfFAWV/giphy.gif",
   "https://media.giphy.com/media/eOkhXuornySWs/giphy.gif",
   "https://media.giphy.com/media/d8p7Yv6PojSLed06bq/giphy.gif",
-  "https://media.giphy.com/media/zzHjALXvIDl3a/giphy.gif"
+  "https://media.giphy.com/media/zzHjALXvIDl3a/giphy.gif",
+ "https://media.giphy.com/media/XE2bxOymylJfDfUl7y/giphy.gif",
+  "https://media.giphy.com/media/93kLSKbDzIbZkByTPH/giphy.gif",
+  "https://media.giphy.com/media/xL61DXzjf8S2M7nDLG/giphy.gif",
+  "https://media.giphy.com/media/uMJWAkQsXLa3wK6NIb/giphy.gif",
+  "https://media.giphy.com/media/FXc6io4TmYzgUtN28F/giphy.gif",
+  "https://media.giphy.com/media/xUA7aXyZwcfRfoVvwI/giphy.gif",
+  "https://media.giphy.com/media/dbwnPYnl2Vk88R9jhz/giphy.gif",
+  "https://media.giphy.com/media/vRvvtJfGHdeRepqPk8/giphy.gif",
+  "https://media.giphy.com/media/txy8Hxqv0NIXnc1hdE/giphy.gif",
+  "https://media.giphy.com/media/l2JIkEcl0xzMw1XR6/giphy.gif",
+  "https://media.giphy.com/media/EIEC7rUF3bqMjMIg6w/giphy.gif",
+  "https://media.giphy.com/media/12XGECQYa80YAo/giphy.gif",
+  "https://media.giphy.com/media/l1K9Dcy7ww0CW3JHq/giphy.gif"
 ];
 
 
